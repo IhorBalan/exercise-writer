@@ -1,16 +1,14 @@
 import { sql } from "drizzle-orm";
-import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 
 import { PROGRAM } from "@/lib/program-data";
 import { movements, steps } from "./schema";
-
-type AnyPgDatabase = PgDatabase<PgQueryResultHKT, Record<string, unknown>>;
+import type { Db } from "./types";
 
 /**
  * Upserts the Big Six movements and their 60 steps. Idempotent: running it
  * again updates names and standards in place, so corrections ship with a deploy.
  */
-export async function seedProgram(db: AnyPgDatabase) {
+export async function seedProgram(db: Db) {
   const movementRows = await db
     .insert(movements)
     .values(PROGRAM.map((m, i) => ({ slug: m.slug, name: m.name, sortOrder: i + 1 })))

@@ -1,0 +1,249 @@
+"use client";
+
+import { useMemo, useState, useTransition } from "react";
+import { Plus, Trash2 } from "lucide-react";
+
+import { saveWorkoutAction } from "@/app/(app)/log/actions";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { NativeSelect } from "@/components/ui/native-select";
+import { Textarea } from "@/components/ui/textarea";
+import type { StandardLevel } from "@/db/schema";
+import { todayLocal } from "@/lib/dates";
+import { formatStandard, LEVELS, LEVEL_LABEL, standardFor } from "@/lib/standards";
+import { cn } from "@/lib/utils";
+import { RepsStepper } from "./reps-stepper";
+import type { EntryDraft, MovementOption, Position, StepOption } from "./types";
+
+interface Props {
+  movements: MovementOption[];
+  /** Latest step/level per movement id, used as defaults. */
+  positions: Record<number, Position>;
+  initial?: {
+    id: string;
+    performedOn: string;
+    notes: string | null;
+    entries: EntryDraft[];
+  };
+}
+
+let keySeq = 0;
+const newKey = () => `e${++keySeq}`;
+
+function defaultReps(step: StepOption, level: StandardLevel): number[] {
+  const { sets, reps } = standardFor(step, level);
+  return Array.from({ length: sets }, () => reps);
+}
+
+export function WorkoutForm({ movements, positions, initial }: Props) {
+  const stepsById = useMemo(() => {
+    const map = new Map<number, StepOption>();
+    for (const m of movements) for (const s of m.steps) map.set(s.id, s);
+    return map;
+  }, [movements]);
+
+  const [performedOn, setPerformedOn] = useState(initial?.performedOn ?? todayLocal());
+  const [notes, setNotes] = useState(initial?.notes ?? "");
+  const [entries, setEntries] = useState<EntryDraft[]>(initial?.entries ?? []);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  const usedMovements = new Set(entries.map((e) => e.movementId));
+  const nextMovement = movements.find((m) => !usedMovements.has(m.id)) ?? movements[0];
+
+  function draftFor(movementId: number): EntryDraft {
+    const movement = movements.find((m) => m.id === movementId)!;
+    const pos = positions[movementId];
+    const step = (pos && stepsById.get(pos.stepId)) || movement.steps[0];
+    const level = pos?.level ?? "beginner";
+    return { key: newKey(), movementId, stepId: step.id, level, reps: defaultReps(step, level) };
+  }
+
+  function update(key: string, patch: Partial<EntryDraft>) {
+    setEntries((prev) => prev.map((e) => (e.key === key ? { ...e, ...patch } : e)));
+  }
+
+  function submit() {
+    setError(null);
+    startTransition(async () => {
+      const result = await saveWorkoutAction(initial?.id ?? null, {
+        performedOn,
+        notes: notes.trim() || null,
+        entries: entries.map(({ stepId, level, reps }) => ({ stepId, level, reps })),
+      });
+      if (result?.error) setError(result.error);
+    });
+  }
+
+  return (
+    <form
+      className="space-y-4"
+      onSubmit={(e) => {
+        e.preventDefault();
+        submit();
+      }}
+    >
+      <div className="space-y-2">
+        <Label htmlFor="performedOn">Date</Label>
+        <Input
+          id="performedOn"
+          type="date"
+          value={performedOn}
+          max={todayLocal()}
+          onChange={(e) => setPerformedOn(e.target.value)}
+          required
+        />
+      </div>
+
+      {entries.map((entry, index) => {
+        const movement = movements.find((m) => m.id === entry.movementId)!;
+        const step = stepsById.get(entry.stepId)!;
+        const target = standardFor(step, entry.level);
+        return (
+          <Card key={entry.key}>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-base">Movement {index + 1}</CardTitle>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                aria-label={`Remove ${movement.name}`}
+                onClick={() => setEntries((prev) => prev.filter((e) => e.key !== entry.key))}
+              >
+                <Trash2 />
+              </Button>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor={`${entry.key}-movement`}>Movement</Label>
+                <NativeSelect
+                  id={`${entry.key}-movement`}
+                  value={entry.movementId}
+                  onChange={(e) => {
+                    const draft = draftFor(Number(e.target.value));
+                    update(entry.key, { ...draft, key: entry.key });
+                  }}
+                >
+                  {movements.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}
+                    </option>
+                  ))}
+                </NativeSelect>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor={`${entry.key}-step`}>Step</Label>
+                <NativeSelect
+                  id={`${entry.key}-step`}
+                  value={entry.stepId}
+                  onChange={(e) => {
+                    const s = stepsById.get(Number(e.target.value))!;
+                    update(entry.key, { stepId: s.id, reps: defaultReps(s, entry.level) });
+                  }}
+                >
+                  {movement.steps.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.stepNumber}. {s.name}
+                    </option>
+                  ))}
+                </NativeSelect>
+              </div>
+
+              <fieldset className="space-y-2">
+                <legend className="text-sm font-medium">Level</legend>
+                <div className="bg-muted grid grid-cols-3 gap-1 rounded-lg p-1">
+                  {LEVELS.map((level) => (
+                    <button
+                      key={level}
+                      type="button"
+                      aria-pressed={entry.level === level}
+                      onClick={() => update(entry.key, { level, reps: defaultReps(step, level) })}
+                      className={cn(
+                        "rounded-md px-1 py-2 text-sm font-medium transition-colors",
+                        entry.level === level
+                          ? "bg-background text-foreground shadow-sm"
+                          : "text-muted-foreground",
+                      )}
+                    >
+                      {LEVEL_LABEL[level]}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-muted-foreground text-xs">
+                  Target: {formatStandard(target, step.unit)}
+                  {step.unit === "seconds" ? " hold" : ""}
+                </p>
+              </fieldset>
+
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Sets</p>
+                {entry.reps.map((value, i) => (
+                  <RepsStepper
+                    key={i}
+                    label={`Set ${i + 1}`}
+                    value={value}
+                    unit={step.unit}
+                    onChange={(v) =>
+                      update(entry.key, { reps: entry.reps.map((r, j) => (j === i ? v : r)) })
+                    }
+                    onRemove={
+                      entry.reps.length > 1
+                        ? () => update(entry.key, { reps: entry.reps.filter((_, j) => j !== i) })
+                        : undefined
+                    }
+                  />
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() =>
+                    update(entry.key, {
+                      reps: [...entry.reps, entry.reps.at(-1) ?? target.reps],
+                    })
+                  }
+                >
+                  <Plus /> Add set
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
+
+      <Button
+        type="button"
+        variant="secondary"
+        size="lg"
+        className="w-full"
+        onClick={() => setEntries((prev) => [...prev, draftFor(nextMovement.id)])}
+      >
+        <Plus /> Add movement
+      </Button>
+
+      <div className="space-y-2">
+        <Label htmlFor="notes">Note (optional)</Label>
+        <Textarea
+          id="notes"
+          value={notes}
+          placeholder="How did it feel?"
+          maxLength={2000}
+          onChange={(e) => setNotes(e.target.value)}
+        />
+      </div>
+
+      {error && (
+        <p role="alert" className="text-destructive text-sm">
+          {error}
+        </p>
+      )}
+
+      <Button type="submit" size="lg" className="w-full" disabled={pending || entries.length === 0}>
+        {pending ? "Saving…" : initial ? "Save changes" : "Save workout"}
+      </Button>
+    </form>
+  );
+}

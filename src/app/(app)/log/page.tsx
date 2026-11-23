@@ -1,8 +1,24 @@
-export default function LogPage() {
+import type { Metadata } from "next";
+
+import { WorkoutForm } from "@/components/workout/workout-form";
+import { requireUser } from "@/lib/auth/session";
+import { getWorkoutFormProps } from "@/lib/data/form-props";
+
+export const metadata: Metadata = { title: "Log workout · Exercise Writer" };
+
+export default async function LogPage() {
+  const user = await requireUser();
+  const props = await getWorkoutFormProps(user.id);
+
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-semibold tracking-tight">Log</h1>
-      <p className="text-muted-foreground text-sm">Coming in a later milestone.</p>
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Log workout</h1>
+        <p className="text-muted-foreground text-sm">
+          Steps and levels start where you left off on each movement.
+        </p>
+      </div>
+      <WorkoutForm {...props} />
     </div>
   );
 }
