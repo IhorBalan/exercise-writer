@@ -4,12 +4,13 @@ import { migrate } from "drizzle-orm/pglite/migrator";
 import { asc, eq } from "drizzle-orm";
 import { describe, expect, it } from "vitest";
 
+import * as schema from "./schema";
 import { movements, steps } from "./schema";
 import { seedProgram } from "./seed";
 
 describe("migrations + seedProgram", () => {
   it("creates the schema and seeds the Big Six idempotently", async () => {
-    const db = drizzle(new PGlite());
+    const db = drizzle(new PGlite(), { schema });
     await migrate(db, { migrationsFolder: "./drizzle" });
 
     expect(await seedProgram(db)).toEqual({ movements: 6, steps: 60 });

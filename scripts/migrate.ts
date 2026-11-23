@@ -9,6 +9,7 @@ import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
 import { migrate } from "drizzle-orm/neon-http/migrator";
 
+import * as schema from "../src/db/schema";
 import { seedProgram } from "../src/db/seed";
 
 async function main() {
@@ -17,7 +18,7 @@ async function main() {
     console.log("[migrate] No DATABASE_URL set, skipping migrations.");
     return;
   }
-  const db = drizzle(neon(url));
+  const db = drizzle(neon(url), { schema });
   await migrate(db, { migrationsFolder: "./drizzle" });
   console.log("[migrate] Migrations applied.");
   const seeded = await seedProgram(db);
