@@ -7,7 +7,7 @@ Live app: https://exercise-writer.vercel.app
 ## Features
 
 - Accounts (email + password via Neon Auth); every user sees only their own data
-- Log a session: movement, step, level and reps per set, plus an optional note; each movement shows your last result for reference
+- Log a session: movement, step, level and reps per set, plus an optional note; each movement shows your last result for reference. On a training day of your routine, "Follow program" adds that day's movements at your current step and level
 - Two warm-up sets before each movement's working sets, prefilled with easier steps; they never count toward standards or charts
 - Settings: pick a Convict Conditioning routine (New Blood, Good Behavior, Veterano, Solitary Confinement, Supermax, or a three-day split); its weekly schedule shows on Log and Programs as a reference
 - History with edit and delete; feedback when a standard is met or you're ready to move up a step

@@ -26,7 +26,7 @@ export default async function LogPage() {
         </p>
       </div>
       <WeeklySchedule routineId={routine.id} />
-      <WorkoutForm {...props} />
+      <WorkoutForm {...props} routineId={routine.id} />
     </div>
   );
 }
