@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { useMemo, useState, useSyncExternalStore, useTransition } from "react";
+import { ListChecks, Plus, Trash2 } from "lucide-react";
 
 import { saveWorkoutAction } from "@/app/(app)/log/actions";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import type { LastResult } from "@/lib/data/workouts";
 import { formatDay } from "@/lib/dates";
 import { todayLocal } from "@/lib/dates";
 import { formatStandard, LEVELS, LEVEL_LABEL, standardFor } from "@/lib/standards";
+import { MOVEMENT_LABEL, routineById } from "@/lib/routines";
 import { cn } from "@/lib/utils";
 import { defaultWarmups } from "@/lib/warmups";
 import { RepsStepper } from "./reps-stepper";
@@ -26,6 +27,8 @@ interface Props {
   positions: Record<number, Position>;
   /** The user's previous result per movement id, shown for reference. */
   lastResults?: Record<number, LastResult>;
+  /** The user's routine; on its training days a "Follow program" button appears. */
+  routineId?: string;
   initial?: {
     id: string;
     performedOn: string;
@@ -42,7 +45,9 @@ function defaultReps(step: StepOption, level: StandardLevel): number[] {
   return Array.from({ length: sets }, () => reps);
 }
 
-export function WorkoutForm({ movements, positions, lastResults = {}, initial }: Props) {
+const noopSubscribe = () => () => {};
+
+export function WorkoutForm({ movements, positions, lastResults = {}, routineId, initial }: Props) {
   const stepsById = useMemo(() => {
     const map = new Map<number, StepOption>();
     for (const m of movements) for (const s of m.steps) map.set(s.id, s);
@@ -55,7 +60,21 @@ export function WorkoutForm({ movements, positions, lastResults = {}, initial }:
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  // Weekday from the device clock; null during server render.
+  const today = useSyncExternalStore(
+    noopSubscribe,
+    () => new Date().getDay(),
+    () => null,
+  );
+  const routine = routineId ? routineById(routineId) : null;
+  const routineDay =
+    !initial && routine && today !== null ? routine.days.find((d) => d.day === today) : undefined;
+  const programMovementIds = (routineDay?.movements ?? [])
+    .map((slug) => movements.find((m) => m.slug === slug)?.id)
+    .filter((id): id is number => id !== undefined);
+
   const usedMovements = new Set(entries.map((e) => e.movementId));
+  const missingProgramMovements = programMovementIds.filter((id) => !usedMovements.has(id));
   const nextMovement = movements.find((m) => !usedMovements.has(m.id)) ?? movements[0];
 
   function draftFor(movementId: number): EntryDraft {
@@ -108,6 +127,24 @@ export function WorkoutForm({ movements, positions, lastResults = {}, initial }:
           required
         />
       </div>
+
+      {routine && routineDay && missingProgramMovements.length > 0 && (
+        <Button
+          type="button"
+          size="lg"
+          className="h-auto w-full flex-col gap-0.5 py-3"
+          onClick={() =>
+            setEntries((prev) => [...prev, ...missingProgramMovements.map((id) => draftFor(id))])
+          }
+        >
+          <span className="flex items-center gap-2">
+            <ListChecks /> Follow {routine.name}
+          </span>
+          <span className="text-xs font-normal opacity-80">
+            Adds today&apos;s {routineDay.movements.map((m) => MOVEMENT_LABEL[m]).join(" + ")}
+          </span>
+        </Button>
+      )}
 
       {entries.map((entry, index) => {
         const movement = movements.find((m) => m.id === entry.movementId)!;
