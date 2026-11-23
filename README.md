@@ -1,54 +1,75 @@
 # Exercise Writer
 
-A web platform for tracking your workouts and exercise progress.
+A mobile-first tracker for [Convict Conditioning](https://en.wikipedia.org/wiki/Convict_Conditioning) training: log your Big Six sessions (movement, step, level, reps per set) and follow your progress on a dashboard.
 
-## About
+Live app: https://exercise-writer.vercel.app
 
-Exercise Writer helps you log workouts, track progress over time, and stay consistent with your training goals.
+## Tech stack
 
-## Features
+- **Framework:** Next.js 16 (App Router, TypeScript), frontend and backend in one app
+- **UI:** shadcn/ui (new-york style) + Tailwind CSS v4, lucide icons
+- **Database:** Neon Postgres via `@neondatabase/serverless`, Drizzle ORM
+- **Auth:** Neon Auth (`@neondatabase/auth`)
+- **Hosting:** Vercel, Preview environment only, deployed by git tag
 
-- [ ] Log workouts (exercises, sets, reps, weight, duration)
-- [ ] Create and reuse workout templates
-- [ ] Track progress with charts and history
-- [ ] Set and monitor fitness goals
-- [ ] User accounts and authentication
+## Getting started
 
-## Tech Stack
-
-- **Frontend:** _TBD_
-- **Backend:** _TBD_
-- **Database:** _TBD_
-- **Hosting:** _TBD_
-
-## Getting Started
-
-### Prerequisites
-
-- _TBD_ (e.g. Node.js, package manager)
-
-### Installation
+Prerequisites: Node.js 22+ and npm.
 
 ```bash
 git clone https://github.com/IhorBalan/exercise-writer.git
 cd exercise-writer
-# install dependencies
+npm install
+
+# Pull the Neon variables from Vercel (Preview environment).
+# Sensitive values cannot be pulled, so you may need to copy DATABASE_URL
+# from the Neon console into .env.local yourself. See .env.example.
+npx vercel link
+npx vercel env pull .env.local --environment=preview
+
+npm run dev
 ```
 
-### Running Locally
+Open http://localhost:3000. `GET /api/health` reports whether the database is reachable.
+
+## Scripts
+
+| Script | What it does |
+| --- | --- |
+| `npm run dev` | Start the dev server |
+| `npm run build` | Production build |
+| `npm run lint` | ESLint |
+| `npm run typecheck` | Generate route types and run `tsc` |
+| `npm test` | Unit tests (Vitest) |
+| `npm run db:generate` | Generate a SQL migration from `src/db/schema.ts` |
+| `npm run db:migrate` | Apply migrations (skips when no database URL is set) |
+
+## Releasing
+
+Vercel's git integration is turned off in `vercel.json`, so pushes and pull requests never deploy. To release:
 
 ```bash
-# start the development server
+git checkout main && git pull
+git tag v0.1.0
+git push origin v0.1.0
 ```
 
-## Project Structure
+The `Release` GitHub Action deploys the tag to Vercel's Preview environment (Vercel runs the database migrations and then `next build`) and points https://exercise-writer.vercel.app at the new deployment.
 
-_TBD_
+The action needs one repository secret, `VERCEL_TOKEN` (Settings > Secrets and variables > Actions). Create the token at https://vercel.com/account/tokens.
 
-## Contributing
+## CI
 
-Contributions are welcome. Please open an issue to discuss changes before submitting a pull request.
+`.github/workflows/ci.yml` runs lint, typecheck, tests and build on every pull request and on pushes to `main`.
 
-## License
+## Project structure
 
-_TBD_ (e.g. MIT)
+```
+src/
+  app/            routes (App Router); api/ holds route handlers
+  components/     app components; ui/ holds shadcn/ui components
+  db/             Drizzle client and schema
+  lib/            shared helpers
+scripts/          one-off scripts (migrations, seed)
+drizzle/          generated SQL migrations
+```
