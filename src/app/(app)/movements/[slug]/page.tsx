@@ -35,7 +35,7 @@ export default async function MovementPage({ params }: PageProps<"/movements/[sl
   const points = onStep.map((e, i) => ({
     key: `${e.performedOn}#${i}`,
     date: e.performedOn,
-    best: Math.max(...e.reps),
+    sets: e.reps,
   }));
   const bestEver = onStep.reduce<(typeof LEVELS)[number] | null>((acc, e) => {
     const lvl = highestLevelMet(e.reps, step);
@@ -86,14 +86,14 @@ export default async function MovementPage({ params }: PageProps<"/movements/[sl
       {points.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Best set per session</CardTitle>
+            <CardTitle>Sets per session</CardTitle>
             <CardDescription>
               Step {step.stepNumber}, dashed line = progression target ({target.reps} {unitLabel}
               {target.sets > 1 ? ` × ${target.sets} sets` : ""})
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <SessionChart data={points} target={target.reps} unitLabel={unitLabel} color={color} />
+            <SessionChart data={points} target={target.reps} unitLabel={unitLabel} />
           </CardContent>
         </Card>
       )}
@@ -113,7 +113,10 @@ export default async function MovementPage({ params }: PageProps<"/movements/[sl
                     <div>
                       <p className="font-medium">{formatDay(e.performedOn)}</p>
                       <p className="text-muted-foreground text-xs">
-                        Step {e.stepNumber} · {e.reps.join(" · ")} {unitLabel}
+                        Step {e.stepNumber} · {e.stepName}
+                      </p>
+                      <p className="text-xs tabular-nums">
+                        {describeSets(e.reps, e.unit)}
                       </p>
                     </div>
                     <Badge variant="secondary">{LEVEL_LABEL[e.level]}</Badge>
@@ -125,4 +128,15 @@ export default async function MovementPage({ params }: PageProps<"/movements/[sl
       )}
     </div>
   );
+}
+
+/** "2 sets: 12 and 10 reps" or "1 set: 30 sec". */
+function describeSets(reps: number[], unit: "reps" | "seconds"): string {
+  const label = unit === "seconds" ? "sec" : "reps";
+  const sets = `${reps.length} ${reps.length === 1 ? "set" : "sets"}`;
+  const values =
+    reps.length <= 1
+      ? `${reps[0] ?? 0}`
+      : `${reps.slice(0, -1).join(", ")} and ${reps.at(-1)}`;
+  return `${sets}: ${values} ${label}`;
 }
