@@ -3,13 +3,14 @@ import "server-only";
 import { getDb } from "@/db";
 import type { MovementOption, Position } from "@/components/workout/types";
 import { getProgram } from "./program";
-import { getCurrentPositions } from "./workouts";
+import { getCurrentPositions, getLastResults, type LastResult } from "./workouts";
 
 /** Program and the user's current positions, shaped for the workout form. */
-export async function getWorkoutFormProps(userId: string) {
-  const [program, positions] = await Promise.all([
+export async function getWorkoutFormProps(userId: string, editingWorkoutId?: string) {
+  const [program, positions, last] = await Promise.all([
     getProgram(),
     getCurrentPositions(getDb(), userId),
+    getLastResults(getDb(), userId, editingWorkoutId),
   ]);
   const movementOptions: MovementOption[] = program.map((m) => ({
     id: m.id,
@@ -30,5 +31,6 @@ export async function getWorkoutFormProps(userId: string) {
   }));
   const positionMap: Record<number, Position> = {};
   for (const [movementId, p] of positions) positionMap[movementId] = { stepId: p.stepId, level: p.level };
-  return { movements: movementOptions, positions: positionMap };
+  const lastResults: Record<number, LastResult> = Object.fromEntries(last);
+  return { movements: movementOptions, positions: positionMap, lastResults };
 }

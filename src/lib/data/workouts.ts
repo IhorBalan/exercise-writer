@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, ne, sql } from "drizzle-orm";
 
 import {
   movements,
@@ -248,4 +248,49 @@ export async function listStatEntries(db: Db, userId: string) {
     .innerJoin(movements, eq(movements.id, steps.movementId))
     .where(eq(workouts.userId, userId))
     .orderBy(asc(workouts.performedOn), asc(workouts.createdAt));
+}
+
+export interface LastResult {
+  performedOn: string;
+  stepNumber: number;
+  stepName: string;
+  unit: "reps" | "seconds";
+  level: StandardLevel;
+  reps: number[];
+}
+
+/**
+ * The most recent entry per movement id, for showing "last time" while
+ * logging. `excludeWorkoutId` leaves out the workout being edited.
+ */
+export async function getLastResults(
+  db: Db,
+  userId: string,
+  excludeWorkoutId?: string,
+): Promise<Map<number, LastResult>> {
+  const rows = await db
+    .selectDistinctOn([steps.movementId], {
+      movementId: steps.movementId,
+      performedOn: workouts.performedOn,
+      stepNumber: steps.stepNumber,
+      stepName: steps.name,
+      unit: steps.unit,
+      level: workoutEntries.level,
+      reps: workoutEntries.reps,
+    })
+    .from(workoutEntries)
+    .innerJoin(workouts, eq(workouts.id, workoutEntries.workoutId))
+    .innerJoin(steps, eq(steps.id, workoutEntries.stepId))
+    .where(
+      excludeWorkoutId
+        ? and(eq(workouts.userId, userId), ne(workouts.id, excludeWorkoutId))
+        : eq(workouts.userId, userId),
+    )
+    .orderBy(
+      steps.movementId,
+      desc(workouts.performedOn),
+      desc(workouts.createdAt),
+      desc(workoutEntries.position),
+    );
+  return new Map(rows.map(({ movementId, ...r }) => [movementId, r]));
 }
