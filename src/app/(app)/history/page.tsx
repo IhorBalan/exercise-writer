@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Download } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { getDb } from "@/db";
@@ -16,7 +16,17 @@ export default async function HistoryPage() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-semibold tracking-tight">History</h1>
+      <div className="flex items-end justify-between gap-2">
+        <h1 className="text-2xl font-semibold tracking-tight">History</h1>
+        {workouts.length > 0 && (
+          <Button asChild variant="outline" size="sm">
+            {/* Plain link: the browser downloads the CSV. */}
+            <a href="/api/export" download>
+              <Download /> Export CSV
+            </a>
+          </Button>
+        )}
+      </div>
       {workouts.length === 0 ? (
         <div className="space-y-3 rounded-xl border border-dashed p-6 text-center">
           <p className="text-muted-foreground text-sm">No workouts yet.</p>
