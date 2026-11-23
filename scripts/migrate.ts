@@ -1,6 +1,6 @@
 /**
  * Applies pending Drizzle migrations from ./drizzle.
- * Runs as part of the Vercel build (see vercel.json), so a tagged release
+ * Runs as part of the Vercel build (see vercel.json), so each deploy
  * ships schema and code together. Skips quietly when no database URL is set
  * (local builds, CI).
  */

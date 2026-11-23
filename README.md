@@ -10,7 +10,7 @@ Live app: https://exercise-writer.vercel.app
 - **UI:** shadcn/ui (new-york style) + Tailwind CSS v4, lucide icons
 - **Database:** Neon Postgres via `@neondatabase/serverless`, Drizzle ORM
 - **Auth:** Neon Auth (`@neondatabase/auth`)
-- **Hosting:** Vercel, Preview environment only, deployed by git tag
+- **Hosting:** Vercel, auto-deployed from `main`
 
 ## Getting started
 
@@ -21,11 +21,11 @@ git clone https://github.com/IhorBalan/exercise-writer.git
 cd exercise-writer
 npm install
 
-# Pull the Neon variables from Vercel (Preview environment).
+# Pull the Neon variables from Vercel.
 # Sensitive values cannot be pulled, so you may need to copy DATABASE_URL
 # from the Neon console into .env.local yourself. See .env.example.
 npx vercel link
-npx vercel env pull .env.local --environment=preview
+npx vercel env pull .env.local --environment=production
 
 npm run dev
 ```
@@ -44,19 +44,11 @@ Open http://localhost:3000. `GET /api/health` reports whether the database is re
 | `npm run db:generate` | Generate a SQL migration from `src/db/schema.ts` |
 | `npm run db:migrate` | Apply migrations (skips when no database URL is set) |
 
-## Releasing
+## Deploying
 
-Vercel's git integration is turned off in `vercel.json`, so pushes and pull requests never deploy. To release:
+Merging to `main` deploys automatically: Vercel's git integration builds `main` as a Production deployment at https://exercise-writer.vercel.app. During the build Vercel runs the database migrations, then `next build`.
 
-```bash
-git checkout main && git pull
-git tag v0.1.0
-git push origin v0.1.0
-```
-
-The `Release` GitHub Action deploys the tag to Vercel's Preview environment (Vercel runs the database migrations and then `next build`) and points https://exercise-writer.vercel.app at the new deployment.
-
-The action needs one repository secret, `VERCEL_TOKEN` (Settings > Secrets and variables > Actions). Create the token at https://vercel.com/account/tokens.
+Other branches and pull requests are skipped by the `ignoreCommand` in `vercel.json`, so only `main` ever builds. All environments share one Neon database, which is why previews are off: an unmerged migration must never touch it.
 
 ## CI
 
