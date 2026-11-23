@@ -1,4 +1,5 @@
-import { LogOut } from "lucide-react";
+import Link from "next/link";
+import { LogOut, Settings } from "lucide-react";
 
 import { signOutAction } from "@/app/(auth)/auth/actions";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -9,6 +10,11 @@ export function UserMenu({ name }: { name: string }) {
     <form action={signOutAction} className="flex items-center gap-1">
       <span className="text-muted-foreground mr-1 max-w-[9rem] truncate text-sm">{name}</span>
       <ThemeToggle />
+      <Button asChild variant="ghost" size="icon" aria-label="Settings">
+        <Link href="/settings">
+          <Settings />
+        </Link>
+      </Button>
       <Button type="submit" variant="ghost" size="icon" aria-label="Sign out">
         <LogOut />
       </Button>

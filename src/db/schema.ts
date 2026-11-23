@@ -106,6 +106,14 @@ export const workoutWarmups = pgTable(
   (t) => [index("workout_warmups_entry_idx").on(t.entryId)],
 );
 
+/** Per-user preferences. One row per Neon Auth user, created on first save. */
+export const userSettings = pgTable("user_settings", {
+  userId: text("user_id").primaryKey(),
+  /** Id from src/lib/routines.ts; unknown ids fall back to the default. */
+  routine: text("routine").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export type Movement = typeof movements.$inferSelect;
 export type Step = typeof steps.$inferSelect;
 export type Workout = typeof workouts.$inferSelect;

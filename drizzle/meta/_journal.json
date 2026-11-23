@@ -15,6 +15,13 @@
       "when": 1795448814711,
       "tag": "0001_warmups",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795449109840,
+      "tag": "0002_user_settings",
+      "breakpoints": true
     }
   ]
 }
