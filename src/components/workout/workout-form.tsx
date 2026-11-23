@@ -14,6 +14,7 @@ import type { StandardLevel } from "@/db/schema";
 import { todayLocal } from "@/lib/dates";
 import { formatStandard, LEVELS, LEVEL_LABEL, standardFor } from "@/lib/standards";
 import { cn } from "@/lib/utils";
+import { defaultWarmups } from "@/lib/warmups";
 import { RepsStepper } from "./reps-stepper";
 import type { EntryDraft, MovementOption, Position, StepOption } from "./types";
 
@@ -58,7 +59,14 @@ export function WorkoutForm({ movements, positions, initial }: Props) {
     const pos = positions[movementId];
     const step = (pos && stepsById.get(pos.stepId)) || movement.steps[0];
     const level = pos?.level ?? "beginner";
-    return { key: newKey(), movementId, stepId: step.id, level, reps: defaultReps(step, level) };
+    return {
+      key: newKey(),
+      movementId,
+      stepId: step.id,
+      level,
+      reps: defaultReps(step, level),
+      warmups: defaultWarmups(movement.steps, step.stepNumber),
+    };
   }
 
   function update(key: string, patch: Partial<EntryDraft>) {
@@ -71,7 +79,7 @@ export function WorkoutForm({ movements, positions, initial }: Props) {
       const result = await saveWorkoutAction(initial?.id ?? null, {
         performedOn,
         notes: notes.trim() || null,
-        entries: entries.map(({ stepId, level, reps }) => ({ stepId, level, reps })),
+        entries: entries.map(({ stepId, level, reps, warmups }) => ({ stepId, level, reps, warmups })),
       });
       if (result?.error) setError(result.error);
     });
@@ -141,7 +149,11 @@ export function WorkoutForm({ movements, positions, initial }: Props) {
                   value={entry.stepId}
                   onChange={(e) => {
                     const s = stepsById.get(Number(e.target.value))!;
-                    update(entry.key, { stepId: s.id, reps: defaultReps(s, entry.level) });
+                    update(entry.key, {
+                      stepId: s.id,
+                      reps: defaultReps(s, entry.level),
+                      warmups: defaultWarmups(movement.steps, s.stepNumber),
+                    });
                   }}
                 >
                   {movement.steps.map((s) => (
@@ -179,7 +191,69 @@ export function WorkoutForm({ movements, positions, initial }: Props) {
               </fieldset>
 
               <div className="space-y-2">
-                <p className="text-sm font-medium">Sets</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">Warm-up</p>
+                  {entry.warmups.length > 0 ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-muted-foreground h-7"
+                      onClick={() => update(entry.key, { warmups: [] })}
+                    >
+                      Skip warm-up
+                    </Button>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7"
+                      onClick={() =>
+                        update(entry.key, { warmups: defaultWarmups(movement.steps, step.stepNumber) })
+                      }
+                    >
+                      <Plus /> Add warm-up
+                    </Button>
+                  )}
+                </div>
+                {entry.warmups.map((warmup, i) => {
+                  const wStep = stepsById.get(warmup.stepId)!;
+                  const setWarmup = (patch: Partial<typeof warmup>) =>
+                    update(entry.key, {
+                      warmups: entry.warmups.map((w, j) => (j === i ? { ...w, ...patch } : w)),
+                    });
+                  return (
+                    <div key={i} className="bg-muted/50 space-y-2 rounded-lg p-2">
+                      <NativeSelect
+                        aria-label={`Warm-up ${i + 1} step`}
+                        value={warmup.stepId}
+                        onChange={(e) => {
+                          const s = stepsById.get(Number(e.target.value))!;
+                          setWarmup({ stepId: s.id, reps: s.beginnerReps });
+                        }}
+                      >
+                        {movement.steps
+                          .filter((s) => s.stepNumber <= step.stepNumber)
+                          .map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.stepNumber}. {s.name}
+                            </option>
+                          ))}
+                      </NativeSelect>
+                      <RepsStepper
+                        label={`W${i + 1}`}
+                        value={warmup.reps}
+                        unit={wStep.unit}
+                        onChange={(v) => setWarmup({ reps: v })}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Working sets</p>
                 {entry.reps.map((value, i) => (
                   <RepsStepper
                     key={i}

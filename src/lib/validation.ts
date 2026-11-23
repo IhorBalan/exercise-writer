@@ -17,6 +17,15 @@ export const workoutInputSchema = z.object({
           .array(z.number().int().min(0).max(10000))
           .min(1, "Add at least one set.")
           .max(20, "That's a lot of sets. Keep it to 20."),
+        warmups: z
+          .array(
+            z.object({
+              stepId: z.number().int().positive(),
+              reps: z.number().int().min(0).max(10000),
+            }),
+          )
+          .max(2, "Keep it to two warm-ups per movement.")
+          .default([]),
       }),
     )
     .min(1, "Add at least one movement.")

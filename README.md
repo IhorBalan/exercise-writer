@@ -8,6 +8,8 @@ Live app: https://exercise-writer.vercel.app
 
 - Accounts (email + password via Neon Auth); every user sees only their own data
 - Log a session: movement, step, level and reps per set, plus an optional note
+- Two warm-up sets before each movement's working sets, prefilled with easier steps; they never count toward standards or charts
+- Weekly schedule reference on Log and Programs (Mon pushups + leg raises, Wed bridges + handstand pushups, Fri pullups + squats)
 - History with edit and delete; feedback when a standard is met or you're ready to move up a step
 - Dashboard: where you are on each ladder, step progression, weekly volume, training-day heatmap, week streak
 - Per-movement page with the current step's standards and best set per session

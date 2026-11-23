@@ -22,6 +22,14 @@ export function EntrySummary({ entry, showFeedback = false }: { entry: EntryView
         </div>
         <Badge variant="secondary">{LEVEL_LABEL[entry.level]}</Badge>
       </div>
+      {entry.warmups.length > 0 && (
+        <p className="text-muted-foreground text-xs">
+          Warm-up:{" "}
+          {entry.warmups
+            .map((w) => `step ${w.step.stepNumber} × ${w.reps}${w.step.unit === "seconds" ? "s" : ""}`)
+            .join(", ")}
+        </p>
+      )}
       <p className="text-sm tabular-nums">
         {entry.reps.map((r) => `${r}${unit}`).join(" · ")}
         {entry.reps.length > 1 && entry.step.unit === "reps" && (

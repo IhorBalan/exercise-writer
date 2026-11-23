@@ -35,6 +35,7 @@ export default async function EditWorkoutPage({ params }: PageProps<"/history/[i
             stepId: e.step.id,
             level: e.level,
             reps: e.reps,
+            warmups: e.warmups.map((w) => ({ stepId: w.step.id, reps: w.reps })),
           })),
         }}
       />
