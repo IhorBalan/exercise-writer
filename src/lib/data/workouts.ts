@@ -176,3 +176,24 @@ export async function getCurrentPositions(
 
   return new Map(rows.map((r) => [r.movementId, r]));
 }
+
+/** Every entry of the user in a flat shape for dashboard statistics. */
+export async function listStatEntries(db: Db, userId: string) {
+  return db
+    .select({
+      performedOn: workouts.performedOn,
+      movementSlug: movements.slug,
+      movementId: movements.id,
+      stepNumber: steps.stepNumber,
+      stepName: steps.name,
+      unit: steps.unit,
+      level: workoutEntries.level,
+      reps: workoutEntries.reps,
+    })
+    .from(workoutEntries)
+    .innerJoin(workouts, eq(workouts.id, workoutEntries.workoutId))
+    .innerJoin(steps, eq(steps.id, workoutEntries.stepId))
+    .innerJoin(movements, eq(movements.id, steps.movementId))
+    .where(eq(workouts.userId, userId))
+    .orderBy(asc(workouts.performedOn), asc(workouts.createdAt));
+}
