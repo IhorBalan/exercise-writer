@@ -7,6 +7,7 @@ import {
   createWorkout,
   deleteWorkout,
   getCurrentPositions,
+  getLastResults,
   getWorkout,
   listWorkouts,
   updateWorkout,
@@ -118,6 +119,31 @@ describe("workouts data layer", () => {
     });
     w = await getWorkout(db, "alice", id);
     expect(w?.entries[0].warmups.map((x) => [x.step.stepNumber, x.reps])).toEqual([[4, 8]]);
+  });
+
+  it("returns the last result per movement, optionally skipping a workout", async () => {
+    const p5 = await stepId(db, "pushups", 5);
+    const first = await createWorkout(db, "alice", {
+      performedOn: "2026-11-16",
+      notes: null,
+      entries: [{ stepId: p5, level: "beginner", reps: [8, 6] }],
+    });
+    const second = await createWorkout(db, "alice", {
+      performedOn: "2026-11-23",
+      notes: null,
+      entries: [{ stepId: p5, level: "intermediate", reps: [10, 9] }],
+    });
+    const [pushups] = await db.select().from(movements).where(eq(movements.slug, "pushups"));
+
+    expect((await getLastResults(db, "alice")).get(pushups.id)).toMatchObject({
+      performedOn: "2026-11-23",
+      stepNumber: 5,
+      level: "intermediate",
+      reps: [10, 9],
+    });
+    expect((await getLastResults(db, "alice", second)).get(pushups.id)?.reps).toEqual([8, 6]);
+    expect((await getLastResults(db, "alice", first)).get(pushups.id)?.reps).toEqual([10, 9]);
+    expect((await getLastResults(db, "bob")).size).toBe(0);
   });
 
   it("reports the latest step per movement", async () => {

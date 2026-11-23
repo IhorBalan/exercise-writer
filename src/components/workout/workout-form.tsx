@@ -4,7 +4,6 @@ import { useMemo, useState, useTransition } from "react";
 import { Plus, Trash2 } from "lucide-react";
 
 import { saveWorkoutAction } from "@/app/(app)/log/actions";
-import { FormCues } from "@/components/form-cues";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,6 +11,8 @@ import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import type { StandardLevel } from "@/db/schema";
+import type { LastResult } from "@/lib/data/workouts";
+import { formatDay } from "@/lib/dates";
 import { todayLocal } from "@/lib/dates";
 import { formatStandard, LEVELS, LEVEL_LABEL, standardFor } from "@/lib/standards";
 import { cn } from "@/lib/utils";
@@ -23,6 +24,8 @@ interface Props {
   movements: MovementOption[];
   /** Latest step/level per movement id, used as defaults. */
   positions: Record<number, Position>;
+  /** The user's previous result per movement id, shown for reference. */
+  lastResults?: Record<number, LastResult>;
   initial?: {
     id: string;
     performedOn: string;
@@ -39,7 +42,7 @@ function defaultReps(step: StepOption, level: StandardLevel): number[] {
   return Array.from({ length: sets }, () => reps);
 }
 
-export function WorkoutForm({ movements, positions, initial }: Props) {
+export function WorkoutForm({ movements, positions, lastResults = {}, initial }: Props) {
   const stepsById = useMemo(() => {
     const map = new Map<number, StepOption>();
     for (const m of movements) for (const s of m.steps) map.set(s.id, s);
@@ -141,6 +144,7 @@ export function WorkoutForm({ movements, positions, initial }: Props) {
                     </option>
                   ))}
                 </NativeSelect>
+                <LastResultLine result={lastResults[entry.movementId]} />
               </div>
 
               <div className="space-y-2">
@@ -163,7 +167,6 @@ export function WorkoutForm({ movements, positions, initial }: Props) {
                     </option>
                   ))}
                 </NativeSelect>
-                <FormCues movementSlug={movement.slug} stepNumber={step.stepNumber} />
               </div>
 
               <fieldset className="space-y-2">
@@ -321,5 +324,28 @@ export function WorkoutForm({ movements, positions, initial }: Props) {
         {pending ? "Saving…" : initial ? "Save changes" : "Save workout"}
       </Button>
     </form>
+  );
+}
+
+const LEVEL_SHORT: Record<StandardLevel, string> = {
+  beginner: "Beg",
+  intermediate: "Int",
+  progression: "Prog",
+};
+
+/** One muted line with the previous session's result for this movement. */
+function LastResultLine({ result }: { result?: LastResult }) {
+  if (!result) {
+    return <p className="text-muted-foreground text-xs">First time logging this movement.</p>;
+  }
+  const unit = result.unit === "seconds" ? "s" : "";
+  return (
+    <p className="text-muted-foreground text-xs tabular-nums">
+      Last time ({formatDay(result.performedOn, { weekday: undefined, year: undefined })}): step{" "}
+      {result.stepNumber} {result.stepName} · {LEVEL_SHORT[result.level]} ·{" "}
+      <span className="text-foreground/80 font-medium">
+        {result.reps.map((r) => `${r}${unit}`).join(" / ")}
+      </span>
+    </p>
   );
 }

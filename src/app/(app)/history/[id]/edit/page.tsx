@@ -16,7 +16,7 @@ export default async function EditWorkoutPage({ params }: PageProps<"/history/[i
   const user = await requireUser();
   const [workout, props] = await Promise.all([
     UUID.test(id) ? getWorkout(getDb(), user.id, id) : null,
-    getWorkoutFormProps(user.id),
+    getWorkoutFormProps(user.id, UUID.test(id) ? id : undefined),
   ]);
   if (!workout) notFound();
 
