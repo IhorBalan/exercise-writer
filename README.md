@@ -4,6 +4,16 @@ A mobile-first tracker for [Convict Conditioning](https://en.wikipedia.org/wiki/
 
 Live app: https://exercise-writer.vercel.app
 
+## Features
+
+- Accounts (email + password via Neon Auth); every user sees only their own data
+- Log a session: movement, step, level and reps per set, plus an optional note
+- History with edit and delete; feedback when a standard is met or you're ready to move up a step
+- Dashboard: where you are on each ladder, step progression, weekly volume, training-day heatmap, week streak
+- Per-movement page with the current step's standards and best set per session
+- Programs reference: all 60 steps with beginner / intermediate / progression standards
+- Dark mode (follows the device, or toggle in the header) and CSV export from History
+
 ## Tech stack
 
 - **Framework:** Next.js 16 (App Router, TypeScript), frontend and backend in one app

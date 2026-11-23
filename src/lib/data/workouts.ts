@@ -182,6 +182,8 @@ export async function listStatEntries(db: Db, userId: string) {
   return db
     .select({
       performedOn: workouts.performedOn,
+      notes: workouts.notes,
+      movementName: movements.name,
       movementSlug: movements.slug,
       movementId: movements.id,
       stepNumber: steps.stepNumber,
