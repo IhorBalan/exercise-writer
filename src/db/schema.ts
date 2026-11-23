@@ -84,8 +84,31 @@ export const workoutEntries = pgTable(
   (t) => [index("workout_entries_workout_idx").on(t.workoutId)],
 );
 
+/**
+ * Warm-up sets done before an entry's working sets. One row per set, usually
+ * an easier step of the same movement. Kept apart from `workout_entries` so
+ * warm-ups never count toward standards, volume or progress.
+ */
+export const workoutWarmups = pgTable(
+  "workout_warmups",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    entryId: uuid("entry_id")
+      .notNull()
+      .references(() => workoutEntries.id, { onDelete: "cascade" }),
+    stepId: integer("step_id")
+      .notNull()
+      .references(() => steps.id),
+    /** Reps, or seconds for timed steps. */
+    reps: integer("reps").notNull(),
+    position: smallint("position").notNull().default(0),
+  },
+  (t) => [index("workout_warmups_entry_idx").on(t.entryId)],
+);
+
 export type Movement = typeof movements.$inferSelect;
 export type Step = typeof steps.$inferSelect;
 export type Workout = typeof workouts.$inferSelect;
 export type WorkoutEntry = typeof workoutEntries.$inferSelect;
+export type WorkoutWarmup = typeof workoutWarmups.$inferSelect;
 export type StandardLevel = (typeof standardLevel.enumValues)[number];

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { WeeklySchedule } from "@/components/weekly-schedule";
 import { getProgram } from "@/lib/data/program";
 import { formatStandard, LEVELS, LEVEL_LABEL, standardFor } from "@/lib/standards";
 
@@ -14,6 +15,7 @@ export default async function ProgramsPage() {
         <h1 className="text-2xl font-semibold tracking-tight">Programs</h1>
         <p className="text-muted-foreground text-sm">The Big Six, ten steps each, with the three standards per step.</p>
       </div>
+      <WeeklySchedule />
       {program.length === 0 && (
         <p className="text-muted-foreground text-sm">Program data hasn&apos;t been loaded yet.</p>
       )}

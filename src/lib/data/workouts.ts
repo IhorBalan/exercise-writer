@@ -1,12 +1,31 @@
 import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 
-import { movements, steps, workoutEntries, workouts, type StandardLevel } from "@/db/schema";
+import {
+  movements,
+  steps,
+  workoutEntries,
+  workouts,
+  workoutWarmups,
+  type StandardLevel,
+} from "@/db/schema";
 import type { Db } from "@/db/types";
+
+export interface WarmupInput {
+  stepId: number;
+  reps: number;
+}
 
 export interface EntryInput {
   stepId: number;
   level: StandardLevel;
   reps: number[];
+  warmups?: WarmupInput[];
+}
+
+export interface WarmupView {
+  id: string;
+  reps: number;
+  step: typeof steps.$inferSelect;
 }
 
 export interface WorkoutInput {
@@ -19,6 +38,7 @@ export interface EntryView {
   id: string;
   level: StandardLevel;
   reps: number[];
+  warmups: WarmupView[];
   step: typeof steps.$inferSelect;
   movement: { id: number; slug: string; name: string };
 }
@@ -44,21 +64,34 @@ async function runAll(db: Db, queries: Promise<unknown>[] & unknown[]) {
   }
 }
 
-function entryRows(workoutId: string, entries: EntryInput[]) {
-  return entries.map((e, i) => ({
+/** Insert queries for a workout's entries and their warm-ups. */
+function entryInserts(db: Db, workoutId: string, entries: EntryInput[]) {
+  const entryRows = entries.map((e, i) => ({
+    id: crypto.randomUUID(),
     workoutId,
     stepId: e.stepId,
     level: e.level,
     reps: e.reps,
     position: i,
   }));
+  const warmupRows = entries.flatMap((e, i) =>
+    (e.warmups ?? []).map((w, j) => ({
+      entryId: entryRows[i].id,
+      stepId: w.stepId,
+      reps: w.reps,
+      position: j,
+    })),
+  );
+  const queries = [db.insert(workoutEntries).values(entryRows)];
+  if (warmupRows.length > 0) queries.push(db.insert(workoutWarmups).values(warmupRows) as never);
+  return queries;
 }
 
 export async function createWorkout(db: Db, userId: string, input: WorkoutInput): Promise<string> {
   const id = crypto.randomUUID();
   await runAll(db, [
     db.insert(workouts).values({ id, userId, performedOn: input.performedOn, notes: input.notes }),
-    db.insert(workoutEntries).values(entryRows(id, input.entries)),
+    ...entryInserts(db, id, input.entries),
   ]);
   return id;
 }
@@ -82,7 +115,7 @@ export async function updateWorkout(
       .set({ performedOn: input.performedOn, notes: input.notes, updatedAt: sql`now()` })
       .where(and(eq(workouts.id, id), eq(workouts.userId, userId))),
     db.delete(workoutEntries).where(eq(workoutEntries.workoutId, id)),
-    db.insert(workoutEntries).values(entryRows(id, input.entries)),
+    ...entryInserts(db, id, input.entries),
   ]);
   return true;
 }
@@ -108,6 +141,22 @@ async function attachEntries(
     .where(inArray(workoutEntries.workoutId, rows.map((r) => r.id)))
     .orderBy(asc(workoutEntries.position));
 
+  const warmupRows =
+    entryRowsResult.length === 0
+      ? []
+      : await db
+          .select({ warmup: workoutWarmups, step: steps })
+          .from(workoutWarmups)
+          .innerJoin(steps, eq(steps.id, workoutWarmups.stepId))
+          .where(inArray(workoutWarmups.entryId, entryRowsResult.map((r) => r.entry.id)))
+          .orderBy(asc(workoutWarmups.position));
+  const warmupsByEntry = new Map<string, WarmupView[]>();
+  for (const { warmup, step } of warmupRows) {
+    const list = warmupsByEntry.get(warmup.entryId) ?? [];
+    list.push({ id: warmup.id, reps: warmup.reps, step });
+    warmupsByEntry.set(warmup.entryId, list);
+  }
+
   const byWorkout = new Map<string, EntryView[]>();
   for (const { entry, step, movement } of entryRowsResult) {
     const list = byWorkout.get(entry.workoutId) ?? [];
@@ -115,6 +164,7 @@ async function attachEntries(
       id: entry.id,
       level: entry.level,
       reps: entry.reps,
+      warmups: warmupsByEntry.get(entry.id) ?? [],
       step,
       movement: { id: movement.id, slug: movement.slug, name: movement.name },
     });

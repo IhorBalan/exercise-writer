@@ -85,6 +85,41 @@ describe("workouts data layer", () => {
     expect(await listWorkouts(db, "alice")).toEqual([]);
   });
 
+  it("stores warm-ups per entry and replaces them on update", async () => {
+    const [p3, p4, p5] = await Promise.all([3, 4, 5].map((n) => stepId(db, "pushups", n)));
+    const id = await createWorkout(db, "alice", {
+      performedOn: "2026-11-23",
+      notes: null,
+      entries: [
+        {
+          stepId: p5,
+          level: "beginner",
+          reps: [10],
+          warmups: [
+            { stepId: p3, reps: 10 },
+            { stepId: p4, reps: 10 },
+          ],
+        },
+        { stepId: await stepId(db, "leg-raises", 2), level: "beginner", reps: [10] },
+      ],
+    });
+
+    let w = await getWorkout(db, "alice", id);
+    expect(w?.entries[0].warmups.map((x) => [x.step.stepNumber, x.reps])).toEqual([
+      [3, 10],
+      [4, 10],
+    ]);
+    expect(w?.entries[1].warmups).toEqual([]);
+
+    await updateWorkout(db, "alice", id, {
+      performedOn: "2026-11-23",
+      notes: null,
+      entries: [{ stepId: p5, level: "beginner", reps: [12], warmups: [{ stepId: p4, reps: 8 }] }],
+    });
+    w = await getWorkout(db, "alice", id);
+    expect(w?.entries[0].warmups.map((x) => [x.step.stepNumber, x.reps])).toEqual([[4, 8]]);
+  });
+
   it("reports the latest step per movement", async () => {
     const pushups5 = await stepId(db, "pushups", 5);
     const pushups6 = await stepId(db, "pushups", 6);

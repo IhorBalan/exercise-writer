@@ -30,4 +30,6 @@ export interface EntryDraft {
   stepId: number;
   level: StandardLevel;
   reps: number[];
+  /** Warm-up sets before the working sets: an easier step and its reps. */
+  warmups: { stepId: number; reps: number }[];
 }
