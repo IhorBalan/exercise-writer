@@ -1,13 +1,17 @@
 import type { Metadata } from "next";
 
 import { WeeklySchedule } from "@/components/weekly-schedule";
+import { getDb } from "@/db";
+import { getRoutine } from "@/lib/data/settings";
+import { requireUser } from "@/lib/auth/session";
 import { getProgram } from "@/lib/data/program";
 import { formatStandard, LEVELS, LEVEL_LABEL, standardFor } from "@/lib/standards";
 
 export const metadata: Metadata = { title: "Programs · Exercise Writer" };
 
 export default async function ProgramsPage() {
-  const program = await getProgram();
+  const user = await requireUser();
+  const [program, routine] = await Promise.all([getProgram(), getRoutine(getDb(), user.id)]);
 
   return (
     <div className="space-y-4">
@@ -15,7 +19,7 @@ export default async function ProgramsPage() {
         <h1 className="text-2xl font-semibold tracking-tight">Programs</h1>
         <p className="text-muted-foreground text-sm">The Big Six, ten steps each, with the three standards per step.</p>
       </div>
-      <WeeklySchedule />
+      <WeeklySchedule routineId={routine.id} />
       {program.length === 0 && (
         <p className="text-muted-foreground text-sm">Program data hasn&apos;t been loaded yet.</p>
       )}
