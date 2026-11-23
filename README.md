@@ -46,7 +46,7 @@ Open http://localhost:3000. `GET /api/health` reports whether the database is re
 
 ## Deploying
 
-Merging to `main` deploys automatically: Vercel's git integration builds `main` as a Production deployment at https://exercise-writer.vercel.app. During the build Vercel runs the database migrations, then `next build`.
+Merging to `main` deploys automatically: Vercel's git integration builds `main` as a Production deployment at https://exercise-writer.vercel.app. During the build Vercel runs the database migrations and upserts the Big Six program data (`src/lib/program-data.ts`), then `next build`.
 
 Other branches and pull requests are skipped by the `ignoreCommand` in `vercel.json`, so only `main` ever builds. All environments share one Neon database, which is why previews are off: an unmerged migration must never touch it.
 
