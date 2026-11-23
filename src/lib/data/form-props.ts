@@ -13,6 +13,7 @@ export async function getWorkoutFormProps(userId: string) {
   ]);
   const movementOptions: MovementOption[] = program.map((m) => ({
     id: m.id,
+    slug: m.slug,
     name: m.name,
     steps: m.steps.map((s) => ({
       id: s.id,

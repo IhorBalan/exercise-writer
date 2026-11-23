@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import { Plus, Trash2 } from "lucide-react";
 
 import { saveWorkoutAction } from "@/app/(app)/log/actions";
+import { FormCues } from "@/components/form-cues";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -162,6 +163,7 @@ export function WorkoutForm({ movements, positions, initial }: Props) {
                     </option>
                   ))}
                 </NativeSelect>
+                <FormCues movementSlug={movement.slug} stepNumber={step.stepNumber} />
               </div>
 
               <fieldset className="space-y-2">

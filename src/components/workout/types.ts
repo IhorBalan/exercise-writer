@@ -15,6 +15,7 @@ export interface StepOption {
 
 export interface MovementOption {
   id: number;
+  slug: string;
   name: string;
   steps: StepOption[];
 }
