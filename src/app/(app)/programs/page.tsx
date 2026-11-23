@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 
+import { FormCues } from "@/components/form-cues";
 import { WeeklySchedule } from "@/components/weekly-schedule";
 import { getDb } from "@/db";
 import { getRoutine } from "@/lib/data/settings";
@@ -49,6 +50,7 @@ export default async function ProgramsPage() {
                       </div>
                     ))}
                   </dl>
+                  <FormCues movementSlug={movement.slug} stepNumber={step.stepNumber} className="mt-2" />
                 </li>
               ))}
             </ol>

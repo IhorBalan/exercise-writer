@@ -13,7 +13,7 @@ Live app: https://exercise-writer.vercel.app
 - History with edit and delete; feedback when a standard is met or you're ready to move up a step
 - Dashboard: where you are on each ladder, step progression, weekly volume, training-day heatmap, week streak
 - Per-movement page with the current step's standards and best set per session
-- Programs reference: all 60 steps with beginner / intermediate / progression standards
+- Programs reference: all 60 steps with beginner / intermediate / progression standards, and a collapsed "How to do it" summary per step (also on the Log form)
 - Dark mode (follows the device, or toggle in the header) and CSV export from History
 
 ## Tech stack
